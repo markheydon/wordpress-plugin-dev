@@ -38,6 +38,16 @@ When building your plugin from this template, follow official documentation:
 - Username: `admin`
 - Password: `admin`
 
+
+## Operations runbook
+
+For full template setup, rebrand flow, and distribution testing guidance, use [RUNBOOK.md](RUNBOOK.md).
+
+## GitHub template assets
+
+- Distribution workflow: [.github/workflows/plugin-distribution.yml](.github/workflows/plugin-distribution.yml)
+- Rebrand prompt: [.github/prompts/plugin-rebrand.prompt.md](.github/prompts/plugin-rebrand.prompt.md)
+
 ## Development commands
 
 Install dependencies (automatic in dev container setup):

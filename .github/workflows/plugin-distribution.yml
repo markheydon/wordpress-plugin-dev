@@ -1,0 +1,241 @@
+name: Plugin Distribution
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      destination_repo:
+        description: 'Optional owner/repo to sync plugin files into (for example markheydon/example-plugin)'
+        required: false
+        default: ''
+      plugin_slug:
+        description: 'Optional WordPress plugin directory name (defaults to repository name without trailing -dev)'
+        required: false
+        default: ''
+      create_zip:
+        description: 'Create ZIP artifact'
+        type: boolean
+        required: false
+        default: true
+      sync_repo:
+        description: 'Sync to destination repo when destination is configured'
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-config:
+    name: Resolve distribution configuration
+    runs-on: ubuntu-latest
+    outputs:
+      destination_repo: ${{ steps.config.outputs.destination_repo }}
+      destination_configured: ${{ steps.config.outputs.destination_configured }}
+      plugin_slug: ${{ steps.config.outputs.plugin_slug }}
+      create_zip: ${{ steps.config.outputs.create_zip }}
+      sync_repo: ${{ steps.config.outputs.sync_repo }}
+      zip_name: ${{ steps.config.outputs.zip_name }}
+    steps:
+      - name: Resolve inputs and vars
+        id: config
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_DESTINATION_REPO: ${{ github.event.inputs.destination_repo }}
+          INPUT_PLUGIN_SLUG: ${{ github.event.inputs.plugin_slug }}
+          INPUT_CREATE_ZIP: ${{ github.event.inputs.create_zip }}
+          INPUT_SYNC_REPO: ${{ github.event.inputs.sync_repo }}
+          VAR_DESTINATION_REPO: ${{ vars.PLUGIN_DESTINATION_REPO }}
+          VAR_PLUGIN_SLUG: ${{ vars.PLUGIN_SLUG }}
+          VAR_CREATE_ZIP: ${{ vars.PLUGIN_CREATE_ZIP }}
+          VAR_SYNC_REPO: ${{ vars.PLUGIN_SYNC_REPO }}
+          SECRET_PLUGIN_SYNC_TOKEN: ${{ secrets.PLUGIN_SYNC_TOKEN }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+        run: |
+          destination_repo="${INPUT_DESTINATION_REPO:-$VAR_DESTINATION_REPO}"
+          plugin_slug="${INPUT_PLUGIN_SLUG:-$VAR_PLUGIN_SLUG}"
+          if [[ -z "$plugin_slug" ]]; then
+            if [[ "$REPO_NAME" != *-dev ]]; then
+              echo "plugin_slug was not provided and repository name ($REPO_NAME) does not end with -dev."
+              echo "Rename the repository with a -dev suffix or set PLUGIN_SLUG/plugin_slug explicitly."
+              exit 1
+            fi
+            plugin_slug="${REPO_NAME%-dev}"
+          fi
+
+          if [[ ! "$plugin_slug" =~ ^[A-Za-z0-9._-]+$ ]] || [[ "$plugin_slug" == "." ]] || [[ "$plugin_slug" == ".." ]]; then
+            echo "plugin_slug must be a single directory name containing only letters, numbers, dots, underscores, or dashes."
+            exit 1
+          fi
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            create_zip="${INPUT_CREATE_ZIP:-true}"
+            sync_repo="${INPUT_SYNC_REPO:-true}"
+          else
+            create_zip="${VAR_CREATE_ZIP:-true}"
+            sync_repo="${VAR_SYNC_REPO:-true}"
+          fi
+
+          destination_configured=false
+          if [[ -n "$destination_repo" ]]; then
+            destination_configured=true
+            if [[ "${destination_repo,,}" == "${SOURCE_REPOSITORY,,}" ]]; then
+              echo "destination_repo must not be the same as the source repository (${SOURCE_REPOSITORY})."
+              exit 1
+            fi
+          fi
+
+          if [[ "$sync_repo" == "true" && "$destination_configured" == "true" && -z "$SECRET_PLUGIN_SYNC_TOKEN" ]]; then
+            echo "PLUGIN_SYNC_TOKEN is required when sync_repo is enabled for a destination repository."
+            exit 1
+          fi
+
+          if [[ -n "$RELEASE_TAG" ]]; then
+            zip_suffix_raw="$RELEASE_TAG"
+          else
+            zip_suffix_raw="${GITHUB_SHA::7}"
+          fi
+
+          zip_suffix="${zip_suffix_raw//\//-}"
+          zip_suffix="${zip_suffix//\\/-}"
+
+          zip_name="${plugin_slug}-${zip_suffix}.zip"
+
+          {
+            echo "destination_repo=$destination_repo"
+            echo "destination_configured=$destination_configured"
+            echo "plugin_slug=$plugin_slug"
+            echo "create_zip=$create_zip"
+            echo "sync_repo=$sync_repo"
+            echo "zip_name=$zip_name"
+          } >> "$GITHUB_OUTPUT"
+
+  build-zip:
+    name: Build plugin ZIP
+    needs: resolve-config
+    if: ${{ needs.resolve-config.outputs.create_zip == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+
+      - name: Stage plugin files from src
+        env:
+          PLUGIN_SLUG: ${{ needs.resolve-config.outputs.plugin_slug }}
+        run: |
+          set -euo pipefail
+          if [[ ! -d src ]] || [[ -z "$(find src -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+            echo "src/ directory is missing or empty; refusing to build distribution package."
+            exit 1
+          fi
+
+          stage_root="$RUNNER_TEMP/plugin-build"
+          stage_dir="$stage_root/$PLUGIN_SLUG"
+          rm -rf "$stage_dir"
+          mkdir -p "$stage_dir"
+          rsync -a --delete src/ "$stage_dir/"
+
+          if [[ -f "$stage_dir/composer.json" ]]; then
+            composer install \
+              --working-dir="$stage_dir" \
+              --no-dev \
+              --no-interaction \
+              --no-progress \
+              --prefer-dist \
+              --optimize-autoloader || {
+                echo "composer install failed while building ZIP package dependencies."
+                exit 1
+              }
+          fi
+
+      - name: Create ZIP archive
+        env:
+          PLUGIN_SLUG: ${{ needs.resolve-config.outputs.plugin_slug }}
+          ZIP_NAME: ${{ needs.resolve-config.outputs.zip_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cd "$RUNNER_TEMP/plugin-build"
+          zip -r "$GITHUB_WORKSPACE/dist/$ZIP_NAME" "$PLUGIN_SLUG"
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-package
+          path: dist/${{ needs.resolve-config.outputs.zip_name }}
+          if-no-files-found: error
+
+      - name: Upload ZIP as release asset
+        if: ${{ github.event_name == 'release' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          ZIP_NAME: ${{ needs.resolve-config.outputs.zip_name }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG" "dist/$ZIP_NAME" --repo "$SOURCE_REPOSITORY" --clobber
+
+  sync-plugin-repo:
+    name: Sync plugin files to destination repo
+    needs: resolve-config
+    if: ${{ needs.resolve-config.outputs.sync_repo == 'true' && needs.resolve-config.outputs.destination_configured == 'true' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: plugin-sync-${{ needs.resolve-config.outputs.destination_repo }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Checkout destination repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.resolve-config.outputs.destination_repo }}
+          token: ${{ secrets.PLUGIN_SYNC_TOKEN }}
+          path: destination
+
+      - name: Sync plugin-only files from src
+        run: |
+          set -euo pipefail
+          if [[ ! -d source/src ]] || [[ -z "$(find source/src -mindepth 1 -maxdepth 1 ! -name '.git' ! -name 'vendor' -print -quit)" ]]; then
+            echo "source/src is missing or empty; refusing to sync with --delete."
+            exit 1
+          fi
+
+          rsync -a --delete \
+            --exclude '.git/' \
+            --exclude 'vendor/' \
+            source/src/ destination/
+
+      - name: Commit and push changes
+        working-directory: destination
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No sync changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: sync plugin files from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}"
+          git push
