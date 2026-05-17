@@ -22,6 +22,14 @@ define( 'PLUGIN_NAME_VERSION', '1.0.0' );
 define( 'PLUGIN_NAME_PATH', plugin_dir_path( __FILE__ ) );
 define( 'PLUGIN_NAME_URL', plugin_dir_url( __FILE__ ) );
 
+if ( ! defined( 'PLUGIN_NAME_ENABLE_CRON' ) ) {
+	define( 'PLUGIN_NAME_ENABLE_CRON', true );
+}
+
+if ( ! defined( 'PLUGIN_NAME_ENABLE_WP_CLI' ) ) {
+	define( 'PLUGIN_NAME_ENABLE_WP_CLI', true );
+}
+
 require_once PLUGIN_NAME_PATH . 'includes/class-plugin-name-activator.php';
 require_once PLUGIN_NAME_PATH . 'includes/class-plugin-name-deactivator.php';
 require_once PLUGIN_NAME_PATH . 'includes/class-plugin-name.php';

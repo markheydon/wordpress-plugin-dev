@@ -58,6 +58,105 @@ If your local plugin folder slug changes, update path-dependent files together:
 3. [phpcs.xml](phpcs.xml)
    - Ruleset display name and description.
 
+## Optional Path: Cron Scaffolding
+
+Cron support is included as reusable template scaffolding. Keep it if your plugin needs scheduled tasks, adapt it for your own event cadence, or remove/disable it if not required.
+
+### 1. Keep and customize cron (recommended when needed)
+
+1. Update callback behavior in [src/includes/class-plugin-name-cron.php](src/includes/class-plugin-name-cron.php).
+2. Rename the event/action names to match your plugin naming and prefix strategy.
+3. Update schedule cadence in [src/includes/class-plugin-name-activator.php](src/includes/class-plugin-name-activator.php) if hourly is not appropriate.
+
+### 2. Disable cron without deleting files (quick opt-out)
+
+1. Set `PLUGIN_NAME_ENABLE_CRON` to `false` before plugin bootstrap executes.
+2. The template will then skip cron class loading, cron hook registration, and activation/deactivation scheduling logic.
+
+### 3. Remove cron scaffolding entirely
+
+1. Delete [src/includes/class-plugin-name-cron.php](src/includes/class-plugin-name-cron.php).
+2. Remove cron lifecycle wiring from:
+   - [src/includes/class-plugin-name-activator.php](src/includes/class-plugin-name-activator.php)
+   - [src/includes/class-plugin-name-deactivator.php](src/includes/class-plugin-name-deactivator.php)
+   - [src/includes/class-plugin-name.php](src/includes/class-plugin-name.php)
+3. Remove or replace any references to `plugin_name_cron_event` and `plugin_name_hourly_task`.
+
+### 4. Validate after cron changes
+
+1. Activate/deactivate plugin and confirm no cron-related PHP errors occur.
+2. If cron is removed or disabled, confirm no scheduled `plugin_name_cron_event` remains.
+3. Run lint checks and confirm no stale cron references remain.
+
+## Optional Path: WP-CLI Scaffolding
+
+WP-CLI support is included as reusable template scaffolding. Keep it if your plugin needs command-line operations, adapt it for project-specific commands, or remove/disable it if not required.
+
+### 1. Keep and customize WP-CLI (recommended when needed)
+
+1. Update command behavior in [src/admin/class-plugin-name-admin-cli.php](src/admin/class-plugin-name-admin-cli.php).
+2. Replace the sample `plugin-name` command namespace and methods with plugin-specific commands.
+3. Ensure command docs/examples match your final command signatures.
+
+### 2. Disable WP-CLI without deleting files (quick opt-out)
+
+1. Set `PLUGIN_NAME_ENABLE_WP_CLI` to `false` before plugin bootstrap executes.
+2. The template will skip WP-CLI scaffold loading and command registration.
+
+### 3. Remove WP-CLI scaffolding entirely
+
+1. Delete [src/admin/class-plugin-name-admin-cli.php](src/admin/class-plugin-name-admin-cli.php).
+2. Remove WP-CLI include/wiring from [src/includes/class-plugin-name.php](src/includes/class-plugin-name.php).
+3. Remove any references to the `wp plugin-name health-check` example command in docs.
+
+### 4. Validate after WP-CLI changes
+
+1. Load the plugin in a non-CLI context and confirm no WP-CLI class/function errors occur.
+2. If WP-CLI was removed, confirm template docs no longer reference command examples you do not ship.
+3. Run lint checks and confirm no stale WP-CLI references remain.
+
+### 5. Smoke test the template WP-CLI command
+
+The template includes one sample command for quick verification:
+
+- `wp plugin-name health-check`
+- Expected output: `Plugin template command is available.`
+
+Run this sequence in the runtime where WordPress is actually mounted:
+
+1. Verify WordPress bootstrap path:
+
+```bash
+wp --path=/var/www/html core is-installed
+```
+
+2. Verify/activate plugin:
+
+```bash
+wp --path=/var/www/html plugin activate plugin-name
+```
+
+3. Run the command:
+
+```bash
+wp --path=/var/www/html plugin-name health-check
+```
+
+If your shell does not have access to the WordPress runtime, run through the Compose WordPress service:
+
+```bash
+docker compose -f .devcontainer/docker-compose.yml exec -T wordpress wp --path=/var/www/html plugin-name health-check
+```
+
+Troubleshooting:
+
+1. `No WordPress installation found`
+   - Your `--path` is wrong for the runtime you are in. Use the mounted WordPress root for that runtime.
+2. `'plugin-name' is not a registered wp command`
+   - Plugin may be inactive, WP-CLI feature may be disabled (`PLUGIN_NAME_ENABLE_WP_CLI=false`), or command namespace may have been renamed during rebrand.
+3. Command still unavailable after activation
+   - Confirm [src/admin/class-plugin-name-admin-cli.php](src/admin/class-plugin-name-admin-cli.php) still exists and is wired in [src/includes/class-plugin-name.php](src/includes/class-plugin-name.php).
+
 ## End-To-End Path B: Configure Distribution
 
 Distribution behavior is defined in [plugin-distribution.yml](.github/workflows/plugin-distribution.yml).

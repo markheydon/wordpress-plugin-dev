@@ -27,6 +27,8 @@ Collect and confirm these values before editing:
 - `text_domain`
 - `author`
 - `author_uri`
+- `cron_required` (`yes` or `no`)
+- `wp_cli_required` (`yes` or `no`)
 - `prefix_old` (optional; default `plugin_name` / `Plugin_Name` variants)
 - `prefix_new` (optional; only if prefix rebrand requested)
 - `security_contact_url` (optional; only if known)
@@ -46,6 +48,7 @@ Before editing files, show a short plan table based on the resolved inputs:
 | Area | Files | Planned updates |
 |------|-------|-----------------|
 | Plugin identity | src/plugin-name.php, src/includes/*.php, src/admin/*.php | Plugin labels, author, text domain, naming comments |
+| Optional features | src/plugin-name.php, src/includes/class-plugin-name.php, src/includes/class-plugin-name-activator.php, src/includes/class-plugin-name-deactivator.php, src/admin/class-plugin-name-admin-cli.php, README.md, RUNBOOK.md | Keep/adapt/remove cron and WP-CLI scaffolding based on required inputs |
 | Slug/path mapping | .devcontainer/docker-compose.yml | Plugin mount path alignment |
 | Metadata | composer.json, .devcontainer/devcontainer.json, phpcs.xml, README.md | Package/display/template metadata |
 | Distribution | .github/workflows/plugin-distribution.yml | Plugin slug defaults/variables (if needed) |
@@ -60,7 +63,20 @@ After the plan table, present a short resolved values summary and include this e
 
 Do not edit any files until the user replies with `confirm`.
 
-## Step 3 - Update plugin identity files
+## Step 3 - Apply optional feature decisions first
+
+1. If `cron_required=no`, remove or disable cron scaffolding before broader rebrand edits:
+  - [src/includes/class-plugin-name-cron.php](src/includes/class-plugin-name-cron.php)
+  - [src/includes/class-plugin-name-activator.php](src/includes/class-plugin-name-activator.php)
+  - [src/includes/class-plugin-name-deactivator.php](src/includes/class-plugin-name-deactivator.php)
+  - [src/includes/class-plugin-name.php](src/includes/class-plugin-name.php)
+2. If `wp_cli_required=no`, remove or disable WP-CLI scaffolding before broader rebrand edits:
+  - [src/admin/class-plugin-name-admin-cli.php](src/admin/class-plugin-name-admin-cli.php)
+  - [src/includes/class-plugin-name.php](src/includes/class-plugin-name.php)
+3. If either feature is removed, update [README.md](README.md) and [RUNBOOK.md](RUNBOOK.md) so shipped docs match the chosen feature set.
+4. If `cron_required=yes` and/or `wp_cli_required=yes`, keep scaffolding and continue with normal rebrand updates.
+
+## Step 4 - Update plugin identity files
 
 1. `src/plugin-name.php`
   - Update `Plugin Name`, `Author`, `Author URI`, and `Text Domain`.
@@ -73,7 +89,7 @@ Do not edit any files until the user replies with `confirm`.
 3. `src/languages/plugin-name.pot`
   - Update project/version metadata if needed.
 
-## Step 4 - Update slug/path-dependent files together
+## Step 5 - Update slug/path-dependent files together
 
 If `plugin_slug` differs from current slug, update all path mappings in the same pass:
 
@@ -84,7 +100,7 @@ If `plugin_slug` differs from current slug, update all path mappings in the same
 
 Never update only one slug/path-dependent location.
 
-## Step 5 - Update project metadata
+## Step 6 - Update project metadata
 
 1. `composer.json`
   - Update package name/description to match the rebrand.
@@ -98,7 +114,7 @@ Never update only one slug/path-dependent location.
 4. `README.md` and `RUNBOOK.md`
   - Update checklist/examples to match new naming.
 
-## Step 6 - Optional prefix rebrand
+## Step 7 - Optional prefix rebrand
 
 Only if explicitly requested:
 
@@ -107,7 +123,7 @@ Only if explicitly requested:
 
 If not requested, keep existing prefixes and state that they were intentionally unchanged.
 
-## Step 7 - Validation
+## Step 8 - Validation
 
 After edits:
 
@@ -134,6 +150,7 @@ Include a short "Not changed" list for optional areas you intentionally skipped.
 
 - Do not make edits until required inputs are confirmed.
 - Do not make edits until the user replies with `confirm`.
+- Treat `cron_required` and `wp_cli_required` as mandatory yes/no decisions before any file edits.
 - Keep changes scoped to rebrand and path-alignment concerns.
 - Do not refactor unrelated code.
 - If expected values are ambiguous, ask before editing.

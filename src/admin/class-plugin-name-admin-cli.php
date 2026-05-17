@@ -5,7 +5,7 @@
  * @package Plugin_Name
  */
 
-if ( defined( 'WP_CLI' ) && WP_CLI ) {
+if ( ( ! defined( 'PLUGIN_NAME_ENABLE_WP_CLI' ) || PLUGIN_NAME_ENABLE_WP_CLI ) && defined( 'WP_CLI' ) && WP_CLI ) {
 	/**
 	 * Template WP-CLI commands.
 	 */
@@ -18,6 +18,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		 *
 		 *     wp plugin-name health-check
 		 *
+		 * @subcommand health-check
 		 * @when after_wp_load
 		 *
 		 * @return void

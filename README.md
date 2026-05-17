@@ -9,6 +9,8 @@ This project intentionally combines:
 
 It is designed as a **template repository** so new plugin projects can be created quickly and consistently.
 
+Template feature note: this starter includes optional cron and WP-CLI helper scaffolding in [src/](src/) that you can keep, adapt, or remove. See [RUNBOOK.md](RUNBOOK.md) for exact removal/customization steps.
+
 ## What this template includes
 
 - `src/` starter plugin scaffold (`plugin-name.php`, `includes/`, `admin/`, `languages/`, `uninstall.php`)
@@ -67,6 +69,41 @@ Auto-fix fixable coding standards issues:
 ```bash
 composer lint:fix
 ```
+
+## WP-CLI smoke test
+
+The template registers one sample WP-CLI command when WP-CLI scaffolding is enabled:
+
+- Command: `wp plugin-name health-check`
+- Expected output: `Plugin template command is available.`
+
+Typical test flow:
+
+1. Ensure WordPress can be bootstrapped from your WP path:
+
+```bash
+wp --path=/var/www/html core is-installed
+```
+
+2. Ensure the plugin is active:
+
+```bash
+wp --path=/var/www/html plugin activate plugin-name
+```
+
+3. Run the command:
+
+```bash
+wp --path=/var/www/html plugin-name health-check
+```
+
+If your terminal is not running in the same runtime where WordPress is mounted, run via the WordPress service container:
+
+```bash
+docker compose -f .devcontainer/docker-compose.yml exec -T wordpress wp --path=/var/www/html plugin-name health-check
+```
+
+If the command is not registered, check [RUNBOOK.md](RUNBOOK.md) for WP-CLI troubleshooting and confirm `PLUGIN_NAME_ENABLE_WP_CLI` is not set to `false`.
 
 ## Template rename checklist
 
