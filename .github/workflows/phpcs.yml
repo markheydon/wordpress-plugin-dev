@@ -1,0 +1,54 @@
+name: Inspections
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  runPHPCSInspection:
+    name: Run PHPCS inspection
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: phpcs-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --no-scripts
+
+      - name: Install cs2pr
+        env:
+          CS2PR_VERSION: 1.8.7
+          CS2PR_SHA256: e514a1aee959fddab8e5da187adf98253d1687b95e4a5251a038abe0ede38420
+        run: |
+          curl -fsSL -o cs2pr "https://github.com/staabm/annotate-pull-request-from-checkstyle/releases/download/${CS2PR_VERSION}/cs2pr"
+          echo "${CS2PR_SHA256}  cs2pr" | sha256sum -c -
+          chmod +x cs2pr
+
+      - name: Run PHPCS inspection
+        run: |
+          set +e
+          ./vendor/bin/phpcs \
+            --standard=phpcs.xml \
+            --report=checkstyle \
+            --report-file=phpcs-report.xml \
+            .
+          phpcs_exit=$?
+
+          if [[ -s phpcs-report.xml ]]; then
+            ./cs2pr < phpcs-report.xml || true
+          fi
+
+          exit $phpcs_exit

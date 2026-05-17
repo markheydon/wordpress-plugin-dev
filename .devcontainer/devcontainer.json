@@ -1,0 +1,32 @@
+{
+  "name": "WordPress Plugin Dev",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "wordpress",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/markheydon/devcontainer-features/copilot-likes:1": {}
+  },
+  "portsAttributes": {
+    "80": {
+      "label": "WordPress (via Docker localhost:8080)",
+      "onAutoForward": "ignore"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bmewburn.vscode-intelephense-client",
+        "xdebug.php-debug"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": false,
+        "php.validate.executablePath": "/usr/local/bin/php"
+      }
+    }
+  }
+}
