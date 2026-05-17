@@ -115,6 +115,7 @@ Update placeholder values before first release:
 - plugin header metadata in `src/plugin-name.php`
 - text domain and language files
 - mount path in `.devcontainer/docker-compose.yml` if plugin slug changes
+- Xdebug path mapping in `.vscode/launch.json` if plugin slug changes
 
 ## Notes
 

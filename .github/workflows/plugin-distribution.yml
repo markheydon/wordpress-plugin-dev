@@ -23,7 +23,7 @@ on:
         description: 'Sync to destination repo when destination is configured'
         type: boolean
         required: false
-        default: true
+        default: false
 
 permissions:
   contents: read
@@ -75,7 +75,7 @@ jobs:
 
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             create_zip="${INPUT_CREATE_ZIP:-true}"
-            sync_repo="${INPUT_SYNC_REPO:-true}"
+            sync_repo="${INPUT_SYNC_REPO:-false}"
           else
             create_zip="${VAR_CREATE_ZIP:-true}"
             sync_repo="${VAR_SYNC_REPO:-true}"

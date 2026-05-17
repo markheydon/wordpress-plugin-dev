@@ -29,20 +29,22 @@ jobs:
         run: composer install --no-interaction --no-progress --prefer-dist --no-scripts
 
       - name: Install cs2pr
+        env:
+          CS2PR_VERSION: 1.8.7
+          CS2PR_SHA256: e514a1aee959fddab8e5da187adf98253d1687b95e4a5251a038abe0ede38420
         run: |
-          curl -fsSL -o cs2pr https://github.com/staabm/annotate-pull-request-from-checkstyle/releases/latest/download/cs2pr
+          curl -fsSL -o cs2pr "https://github.com/staabm/annotate-pull-request-from-checkstyle/releases/download/${CS2PR_VERSION}/cs2pr"
+          echo "${CS2PR_SHA256}  cs2pr" | sha256sum -c -
           chmod +x cs2pr
 
       - name: Run PHPCS inspection
         run: |
           set +e
           ./vendor/bin/phpcs \
-            --standard=WordPress,WordPress-Core,WordPress-Docs \
-            --ignore=tests/*,.github/* \
-            --exclude=WordPress.Files.FileName \
+            --standard=phpcs.xml \
             --report=checkstyle \
             --report-file=phpcs-report.xml \
-            src
+            .
           phpcs_exit=$?
 
           if [[ -s phpcs-report.xml ]]; then

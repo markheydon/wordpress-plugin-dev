@@ -44,7 +44,10 @@ If your local plugin folder slug changes, update path-dependent files together:
 1. [.devcontainer/docker-compose.yml](.devcontainer/docker-compose.yml)
    - Plugin mount path under `/var/www/html/wp-content/plugins/...`.
 
-2. [README.md](README.md)
+2. [.vscode/launch.json](.vscode/launch.json)
+   - Xdebug `pathMappings` entry for `/var/www/html/wp-content/plugins/...`.
+
+3. [README.md](README.md)
    - Update rename checklist references to your final slug and naming conventions.
 
 ### 4. Rebrand project metadata (recommended)
@@ -201,7 +204,7 @@ Expected result:
 
 - ZIP job runs.
 - Artifact named `plugin-package` is uploaded.
-- Downloaded file is an installable plugin ZIP.
+- Downloaded artifact is a GitHub wrapper archive that contains the installable plugin ZIP.
 - Installable ZIP contains one top-level plugin folder, and that folder contains only files staged from [src](src).
 
 Test set 2: Sync-only to disposable target
@@ -229,7 +232,7 @@ Expected result:
 
 ZIP validation checklist:
 
-- Download package is a single installable ZIP.
+- Downloaded artifact archive contains a single installable ZIP.
 - Archive has one top-level plugin folder.
 - Contents match [src](src) payload.
 - No repository-level development files are included.

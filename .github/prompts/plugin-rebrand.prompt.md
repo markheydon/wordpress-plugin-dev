@@ -49,7 +49,7 @@ Before editing files, show a short plan table based on the resolved inputs:
 |------|-------|-----------------|
 | Plugin identity | src/plugin-name.php, src/includes/*.php, src/admin/*.php | Plugin labels, author, text domain, naming comments |
 | Optional features | src/plugin-name.php, src/includes/class-plugin-name.php, src/includes/class-plugin-name-activator.php, src/includes/class-plugin-name-deactivator.php, src/admin/class-plugin-name-admin-cli.php, README.md, RUNBOOK.md | Keep/adapt/remove cron and WP-CLI scaffolding based on required inputs |
-| Slug/path mapping | .devcontainer/docker-compose.yml | Plugin mount path alignment |
+| Slug/path mapping | .devcontainer/docker-compose.yml, .vscode/launch.json | Plugin mount path and Xdebug mapping alignment |
 | Metadata | composer.json, .devcontainer/devcontainer.json, phpcs.xml, README.md | Package/display/template metadata |
 | Distribution | .github/workflows/plugin-distribution.yml | Plugin slug defaults/variables (if needed) |
 | Optional prefix | src/**/*.php, README.md, RUNBOOK.md | Prefix rename notes/usages if requested |
@@ -96,7 +96,10 @@ If `plugin_slug` differs from current slug, update all path mappings in the same
 1. `.devcontainer/docker-compose.yml`
   - Update plugin mount path under `/var/www/html/wp-content/plugins/...`.
 
-2. Distribution defaults in `.github/workflows/plugin-distribution.yml`.
+2. `.vscode/launch.json`
+  - Update Xdebug `pathMappings` entry for `/var/www/html/wp-content/plugins/...`.
+
+3. Distribution defaults in `.github/workflows/plugin-distribution.yml`.
 
 Never update only one slug/path-dependent location.
 
