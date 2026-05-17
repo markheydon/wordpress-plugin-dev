@@ -1,29 +1,48 @@
 services:
-  wordpress:
-    image: wordpress:php8.4-apache
-    ports:
-      - "8080:80"
-    environment:
-      WORDPRESS_DB_HOST: db
-      WORDPRESS_DB_USER: wordpress
-      WORDPRESS_DB_PASSWORD: wordpress
-      WORDPRESS_DB_NAME: wordpress
-      WORDPRESS_CONFIG_EXTRA: |
-        define('FS_METHOD', 'direct');
-    volumes:
-      - ../wordpress:/var/www/html
-      - ..:/workspace
-      - ../src:/var/www/html/wp-content/plugins/plugin-name
-
   db:
-    image: mysql:8.0
+    image: mariadb:11.4
+    restart: unless-stopped
+    networks:
+      - devnet
     environment:
-      MYSQL_DATABASE: wordpress
-      MYSQL_USER: wordpress
-      MYSQL_PASSWORD: wordpress
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-wordydb}
+      MYSQL_USER: ${MYSQL_USER:-wordyuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wordypass}
+      MYSQL_RANDOM_ROOT_PASSWORD: "1"
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  wordpress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - devnet
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ..:/workspace:cached
+      - ../wordpress:/var/www/html
+      - ../src:/var/www/html/wp-content/plugins/plugin-name
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${MYSQL_USER:-wordyuser}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-wordypass}
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-wordydb}
+      WORDPRESS_CONFIG_EXTRA: "define( 'FS_METHOD', 'direct' );"
+
+networks:
+  devnet:
 
 volumes:
   db_data:

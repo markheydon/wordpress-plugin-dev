@@ -1,15 +1,13 @@
 <?php
 /**
- * The core plugin class file.
+ * Core plugin class.
  *
- * Defines internationalization and cron hooks.
- *
- * @link       https://developer.wordpress.org/plugins/
- * @since      1.0.0
- *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/includes
+ * @package Plugin_Name
  */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 require_once PLUGIN_NAME_PATH . 'includes/class-plugin-name-loader.php';
 require_once PLUGIN_NAME_PATH . 'includes/class-plugin-name-i18n.php';
