@@ -30,8 +30,8 @@ updates:
         patterns:
           - "*"
         update-types:
-          - "semver:patch"
-          - "semver:minor"
+          - "patch"
+          - "minor"
       test-dependencies:
         patterns:
           - "phpunit*"
