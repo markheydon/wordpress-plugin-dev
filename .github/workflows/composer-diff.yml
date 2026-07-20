@@ -25,7 +25,7 @@ jobs:
 
       - name: Generate composer diff
         id: composer_diff
-        uses: IonBazan/composer-diff-action@v1.2
+        uses: IonBazan/composer-diff-action@v2.0
 
       - uses: marocchino/sticky-pull-request-comment@v3
         if: ${{ github.event.pull_request.head.repo.fork == false && steps.composer_diff.outputs.composer_diff_exit_code != '0' && steps.composer_diff.outputs.composer_diff != '' }}
